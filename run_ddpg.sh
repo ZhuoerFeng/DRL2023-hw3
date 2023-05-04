@@ -1,0 +1,1 @@
+env CUDA_VISIBLE_DEVICES=1 HYDRA_FULL_ERROR=1 python main.py

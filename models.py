@@ -18,8 +18,7 @@ class Actor(nn.Module):
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        return (action + 1) / 2. * (self.action_space.high - self.action_space.low) + self.action_space.low
         ############################
 
     def to(self, device):

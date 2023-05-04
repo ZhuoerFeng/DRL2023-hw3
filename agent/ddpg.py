@@ -3,7 +3,7 @@ import torch
 from copy import deepcopy
 from models import Actor, Critic
 from utils import get_schedule
-
+import numpy as np
 
 class DDPGAgent:
     def __init__(self, state_size, action_size, action_space, hidden_dim, lr_actor, lr_critic, gamma, tau, nstep, target_update_interval, eps_schedule, device):
@@ -38,8 +38,8 @@ class DDPGAgent:
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        Q = self.critic_net(state, action)
+        Q_target = reward + self.gamma * (1 - done) * self.critic_target(next_state, self.actor_target(next_state))
         ############################
         return Q, Q_target
 
@@ -60,8 +60,7 @@ class DDPGAgent:
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        actor_loss = - torch.mean(self.critic_net(state, self.actor_net(state)))
         ############################
         return actor_loss
 
@@ -82,8 +81,14 @@ class DDPGAgent:
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        state = torch.as_tensor(state, device=self.device)
+        action = self.actor_net(state).cpu().numpy()
+        if not sample:
+            return action
+        else:
+            eps = self.eps_schedule(self.train_step)
+            noise = np.random.uniform(low=-eps, high=eps, size=action.size)
+            return np.clip(action + noise, self.actor_net.action_space.low.cpu().numpy(), self.actor_net.action_space.high.cpu().numpy())
         ############################
 
     def update(self, batch, weights=None):

@@ -41,8 +41,24 @@ class ReplayBuffer:
 
         ############################
         # YOUR IMPLEMENTATION HERE #
+        if self.size < self.capacity:
+            self.state[self.size] = torch.as_tensor(state)
+            self.action[self.size] = torch.as_tensor(action)
+            self.reward[self.size] = torch.as_tensor(reward) # if done != 0 else 0)
+            self.next_state[self.size] = torch.as_tensor(next_state)
+            self.done[self.size] = torch.as_tensor(done)
+            self.size += 1
+            self.idx = self.size
+        else:
+            if self.idx >= self.size:
+                self.idx -= self.size
+            self.state[self.idx] = torch.as_tensor(state)
+            self.action[self.idx] = torch.as_tensor(action)
+            self.reward[self.idx] = torch.as_tensor(reward) # if done != 0 else 0)
+            self.next_state[self.idx] = torch.as_tensor(next_state)
+            self.done[self.idx] = torch.as_tensor(done)
+            self.idx += 1
 
-        raise NotImplementedError
         ############################
 
     def sample(self, batch_size):
@@ -54,7 +70,14 @@ class ReplayBuffer:
         ############################
         # YOUR IMPLEMENTATION HERE #
 
-        raise NotImplementedError
+        batch = (
+            self.state[sample_idxs].to(self.device),
+            self.action[sample_idxs].to(self.device),
+            self.reward[sample_idxs].to(self.device),
+            self.next_state[sample_idxs].to(self.device),
+            self.done[sample_idxs].to(self.device),
+        )
+
         ############################
         return batch
 
