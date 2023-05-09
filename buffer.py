@@ -96,8 +96,18 @@ class NStepReplayBuffer(ReplayBuffer):
         """Get n-step state, action, reward and done forwards, break if there's a done"""
         ############################
         # （OPTIONAL) YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        discount = 1
+        terminated = False
+        state, action, _, _ = self.n_step_buffer[0]
+        reward = 0
+        for sard in self.n_step_buffer:
+            _, _, r, d = sard
+            if not terminated:
+                reward += r * discount
+            discount *= self.gamma
+            if d:
+                terminated = True
+        done = 1 if terminated else 0
         ############################
         return state, action, reward, done
 
@@ -125,8 +135,20 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         """
         ############################
         # （OPTIONAL)  YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        state, action, reward, next_state, done = transition
+        if self.size < self.capacity:
+            self.size += 1
+        else:
+            if self.idx >= self.capacity:
+                self.idx -= self.capacity
+            assert self.idx < self.size, "Buffer idx >= size"
+        self.state[self.idx] = torch.as_tensor(state)
+        self.action[self.idx] = torch.as_tensor(action)
+        self.reward[self.idx] = torch.as_tensor(reward)
+        self.next_state[self.idx] = torch.as_tensor(next_state)
+        self.done[self.idx] = torch.as_tensor(done)
+        self.priorities[self.idx] = self.max_priority
+        self.idx += 1
         ############################
 
     def sample(self, batch_size):
@@ -139,8 +161,19 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         """
         ############################
         # （OPTIONAL)  YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        p_i = self.priorities[:self.size]
+        p_i = p_i / np.sum(p_i)
+        sample_idxs = np.random.choice(self.size, batch_size, replace=False, p=p_i)
+        batch = (
+            self.state[sample_idxs].to(self.device),
+            self.action[sample_idxs].to(self.device),
+            self.reward[sample_idxs].to(self.device),
+            self.next_state[sample_idxs].to(self.device),
+            self.done[sample_idxs].to(self.device),
+        )
+        
+        weights = torch.as_tensor(np.power(1. / p_i[sample_idxs] / self.size, self.beta), device=self.device)
+        weights = weights / torch.max(weights)
         ############################
         return batch, weights, sample_idxs
 
@@ -159,8 +192,10 @@ class PrioritizedNStepReplayBuffer(PrioritizedReplayBuffer):
     def __init__(self, capacity, eps, alpha, beta, n_step, gamma, state_size, action_size, device, seed):
         ############################
         # （OPTIONAL)  YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        super().__init__(capacity, eps, alpha, beta, state_size, device=device)
+        self.n_step = n_step
+        self.n_step_buffer = deque([], maxlen=n_step)
+        self.gamma = gamma
         ############################
 
     def __repr__(self) -> str:
@@ -168,9 +203,32 @@ class PrioritizedNStepReplayBuffer(PrioritizedReplayBuffer):
 
     def add(self, transition):
         ############################
-        # （OPTIONAL)  YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        # YOUR IMPLEMENTATION HERE #
+        state, action, reward, next_state, done = transition
+        self.n_step_buffer.append((state, action, reward, done))
+        if len(self.n_step_buffer) < self.n_step:
+            return
+        state, action, reward, done = self.n_step_handler()
+        super().add((state, action, reward, next_state, done))
         ############################
 
     # def the other necessary class methods as your need
+    def n_step_handler(self):
+        """Get n-step state, action, reward and done for the transition, discard those rewards after done=True"""
+        ############################
+        # YOUR IMPLEMENTATION HERE #
+        discount = 1
+        terminated = False
+        state, action, _, _ = self.n_step_buffer[0]
+        reward = 0
+        for sard in self.n_step_buffer:
+            _, _, r, d = sard
+            if not terminated:
+                reward += r * discount
+            discount *= self.gamma
+            if d:
+                terminated = True
+        done = 1 if terminated else 0
+        # self.n_step_buffer.clear()
+        ############################
+        return state, action, reward, done

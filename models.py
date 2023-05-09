@@ -45,8 +45,9 @@ class SoftActor(Actor):
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        mean_std = self.fcs(state) # output activation is identity
+        mean, log_std = torch.chunk(mean_std, 2, dim=-1)
+        log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
         ############################
         return mean, log_std
 
@@ -61,8 +62,11 @@ class SoftActor(Actor):
         # This library might be helpful: torch.distributions
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        m = torch.distributions.normal.Normal(loc=mean, scale=log_std.exp())
+        _action = m.rsample()
+        action = torch.tanh(_action)
+        # scale = (self.action_space.high - self.action_space.low) / 2 
+        log_prob = m.log_prob(_action) - torch.log((1 - action.pow(2)) + 1e-6)
         ############################
         return self._normalize(action), log_prob
 

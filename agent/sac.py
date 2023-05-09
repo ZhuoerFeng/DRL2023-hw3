@@ -46,8 +46,13 @@ class SACAgent(TD3Agent):
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        Q = self.critic_net(state, action)
+        Q2 = self.critic_net_2(state, action)
+        next_action, log_prob = self.actor_net.evaluate(next_state, sample=True)
+        next_entropy = -log_prob.sum(dim=-1, keepdim=True)
+        
+        q_next = torch.minimum(self.critic_target(next_state, next_action), self.critic_target_2(next_state, next_action))
+        Q_target = reward + self.gamma * (1 - done) * (q_next + self.log_alpha.exp() * next_entropy).detach()
         ############################
         return Q, Q2, Q_target
 
@@ -75,8 +80,14 @@ class SACAgent(TD3Agent):
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
+        s = torch.as_tensor(state, device=self.device)
+        action, log_prob = self.actor_net.evaluate(s, sample=True)
+        entropy = -log_prob.sum(dim=-1, keepdim=True)
 
-        raise NotImplementedError
+        actor_loss = -torch.mean(
+            torch.minimum(self.critic_net(s, action), self.critic_net_2(s, action)) + \
+                self.log_alpha.exp() * entropy
+        )
         ############################
         return actor_loss, log_prob
 
@@ -96,8 +107,8 @@ class SACAgent(TD3Agent):
         """
         ############################
         # YOUR IMPLEMENTATION HERE #
-
-        raise NotImplementedError
+        entropy = log_prob.sum(dim=-1, keepdim=True).detach()
+        alpha_loss = - torch.mean(self.log_alpha.exp() * (self.target_entropy - entropy))
         ############################
         return alpha_loss
 

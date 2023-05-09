@@ -34,7 +34,7 @@ class TD3Agent(DDPGAgent):
         target_action = torch.clamp(target_action + noise, self.actor_net.action_space.low, self.actor_net.action_space.high)
         q_target1 = self.critic_target(next_state, target_action)
         q_target2 = self.critic_target_2(next_state, target_action)
-        Q_target = reward + self.gamma * (1 - done) * torch.minimum(q_target1, q_target2)
+        Q_target = reward + self.gamma * (1 - done) * torch.minimum(q_target1, q_target2).detach()
         ############################
         return Q, Q2, Q_target
 
@@ -67,13 +67,13 @@ class TD3Agent(DDPGAgent):
         # YOUR IMPLEMENTATION HERE #
         if not self.train_step % self.policy_update_interval:
             actor_loss = self.update_actor(state)
-            self.soft_update(self.actor_target, self.actor_net)
             log_dict['actor_loss'] = actor_loss
         ############################
 
         if not self.train_step % self.target_update_interval:
             self.soft_update(self.critic_target_2, self.critic_net_2)
             self.soft_update(self.critic_target, self.critic_net)
+            self.soft_update(self.actor_target, self.actor_net)
 
         self.train_step += 1
         return log_dict

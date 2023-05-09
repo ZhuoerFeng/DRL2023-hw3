@@ -5,7 +5,7 @@ defaults:
 seeds: 
 - 0
 - 42
-- 3407 # https://arxiv.org/abs/2109.08203
+# - 3407 # https://arxiv.org/abs/2109.08203
 
 tag: null
 env_name: LunarLanderContinuous-v2

@@ -39,7 +39,7 @@ class DDPGAgent:
         ############################
         # YOUR IMPLEMENTATION HERE #
         Q = self.critic_net(state, action)
-        Q_target = reward + self.gamma * (1 - done) * self.critic_target(next_state, self.actor_target(next_state))
+        Q_target = reward + self.gamma * (1 - done) * self.critic_target(next_state, self.actor_target(next_state)).detach()
         ############################
         return Q, Q_target
 
@@ -87,7 +87,7 @@ class DDPGAgent:
             return action
         else:
             eps = self.eps_schedule(self.train_step)
-            noise = np.random.uniform(low=-eps, high=eps, size=action.size)
+            noise = np.random.normal(loc=0, scale=eps, size=action.size)
             return np.clip(action + noise, self.actor_net.action_space.low.cpu().numpy(), self.actor_net.action_space.high.cpu().numpy())
         ############################
 
